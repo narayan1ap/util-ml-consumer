@@ -1,15 +1,23 @@
 package com.pct.consumer.service.impl.Consumer;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.ObjectUtils;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.reindex.BulkByScrollResponse;
-import org.elasticsearch.index.reindex.UpdateByQueryRequest;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptType;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,49 +38,118 @@ import lombok.extern.slf4j.Slf4j;
 public class ImageConsumer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ImageConsumer.class);
-	
+
 	@Autowired
 	private RestTemplate restTemplate;
 
 	@Autowired
 	private RestHighLevelClient client;
 
+	private String destinationIndex = "image-index-delete-me-later";
+
+	private List<IndexRequest> indexRequests = new ArrayList<>();
+
 	@KafkaListener(topics = "image-ml")
-	public void getCargoCameraImageJson(@Payload String imageJson, @Headers MessageHeaders messageHeaders) {
-		JSONObject jsonString = new JSONObject(imageJson);
-		String imageUrl = jsonString.getJSONObject("_source").getJSONObject("cargo_camera_sensor").getString("uri");
-		logger.debug("imageUrl: " + imageUrl);
+	public void getCargoCameraImageJson(@Payload List<String> uuids, @Headers MessageHeaders messageHeaders)
+			throws Exception {
+		if (ObjectUtils.isNotEmpty(uuids)) {
+			logger.info("uuids length : " + uuids.size());
+			List<SearchHit> searchHits = createUuidSearchRequest(uuids);
+			for (SearchHit searchHit : searchHits) {
+				String imageUrl = getUriFromCargoCameraTLV(searchHit);
+				if (ObjectUtils.isNotEmpty(imageUrl)) {
+					ImageDataDTO response = null;
+					try {
+						response = getImageDataFromTensorFlow(imageUrl);
+					} catch (Exception e) {
+						createIndexRequestForException(searchHit);
+					}
+					if (ObjectUtils.isNotEmpty(response)) {
+						createIndexRequest(response, searchHit, indexRequests);
+					}
+				}
+			}
+			if (ObjectUtils.isNotEmpty(indexRequests)) {
+				updateBulkIndexRequests(indexRequests);
+			}
+		}
+	}
+
+	private List<SearchHit> createUuidSearchRequest(List<String> uuids) {
+		SearchRequest searchRequest = new SearchRequest();
+		searchRequest.indices(destinationIndex);
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.query(QueryBuilders.termsQuery("_id", uuids));
+		searchRequest.source(searchSourceBuilder);
+		List<SearchHit> searchHits = null;
+		try {
+			SearchResponse searchResponse = null;
+			searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+			SearchHit[] hits = searchResponse.getHits().getHits();
+			searchHits = Arrays.asList(hits);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return searchHits;
+	}
+
+	private String getUriFromCargoCameraTLV(SearchHit searchHit) {
+		String jsonString = searchHit.getSourceAsString();
+		JSONObject json = new JSONObject(jsonString);
+		String imageUrl = json.getJSONObject("cargo_camera_sensor").getString("uri");
+		return imageUrl;
+	}
+
+	private ImageDataDTO getImageDataFromTensorFlow(String imageUrl) throws Exception {
 		String url = "http://127.0.0.1:5000/image/?file_path=" + imageUrl;
-		logger.debug("url: " + url);
-		ImageDataDTO response = null;
-		Map<String, Object> paramsToBeUpdate = new HashMap<>();
+		logger.info("started fetching image data from python model");
+		ImageDataDTO response = restTemplate.getForObject(url, ImageDataDTO.class);
+		logger.info("completed fetching image data from python model");
+		return response;
+	}
+
+	private void createIndexRequest(ImageDataDTO response, SearchHit searchHit, List<IndexRequest> indexRequests) {
+		Map map = searchHit.getSourceAsMap();
+		Map cargoCameraSensorTLV = (Map) map.get("cargo_camera_sensor");
+		cargoCameraSensorTLV.put("state", response.getState());
+		cargoCameraSensorTLV.put("prediction_value", response.getPrediction_value());
+		cargoCameraSensorTLV.put("confidence_rating", response.getConfidence_rating());
+		String uuid = searchHit.getId();
+		IndexRequest indexRequest = new IndexRequest(destinationIndex);// destination
+		indexRequest.id(uuid);
+		indexRequest.source(map, XContentType.JSON);
+		indexRequests.add(indexRequest);
+	}
+
+	private void updateBulkIndexRequests(List<IndexRequest> indexRequests) {
 		try {
-			logger.info("started fetching image data from python model");
-			response = restTemplate.getForObject(url, ImageDataDTO.class);
-			logger.info("completed fetching image data from python model");
-			paramsToBeUpdate.put("uri", imageUrl);
-			paramsToBeUpdate.put("state", response.getState());
-			paramsToBeUpdate.put("prediction_value", response.getPrediction_value());
-			paramsToBeUpdate.put("confidence_rating", response.getConfidence_rating());
-		} catch (Exception e) {
-			paramsToBeUpdate.put("state", "Exception Occured");
-			paramsToBeUpdate.put("prediction_value", "NA");
-			paramsToBeUpdate.put("confidence_rating", "NA");
-			logger.error("Exception Occured while fetching image data from python model " + e.getMessage());
+			BulkRequest bulkRequest = new BulkRequest();
+			for (IndexRequest indexRequest : indexRequests) {
+				bulkRequest.add(indexRequest);
+			}
+			BulkResponse indexResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+			if (indexResponse.hasFailures()) {
+				System.out.println("<---while updating failed for deivceId ");
+			} else {
+				System.out.println("total records update for deviceId in index  are " + indexResponse.getItems().length
+						+ " and status is " + indexResponse.status());
+			}
+		} catch (Exception ex) {
+			System.out.println("<---Error for updateBulkRequest : for deviceID   due to " + ex + " --->");
 		}
-		String source = "ctx._source.cargo_camera_sensor.uri = params.uri;ctx._source.cargo_camera_sensor.state = params.state;ctx._source.cargo_camera_sensor.prediction_value = params.prediction_value;ctx._source.cargo_camera_sensor.confidence_rating = params.confidence_rating";
-		UpdateByQueryRequest updateByQueryRequest = new UpdateByQueryRequest("image-index-delete-me-later");
-		updateByQueryRequest.setQuery(QueryBuilders.matchQuery("_id", jsonString.getString("_id")));
-		Script script = new Script(ScriptType.INLINE, "painless", source, paramsToBeUpdate);
-		updateByQueryRequest.setScript(script);
-		try {
-			BulkByScrollResponse bulkResponse = client.updateByQuery(updateByQueryRequest, RequestOptions.DEFAULT);
-			logger.debug("updated response id: " + bulkResponse.getTotal());
-		} catch (Exception e) {
-			logger.error("Exception Occured while updating image data into ES " + e.getMessage());
-			//retry
-		}
-	
+	}
+
+	private void createIndexRequestForException(SearchHit searchHit) {
+		Map map = searchHit.getSourceAsMap();
+		Map cargoCameraSensorTLV = (Map) map.get("cargo_camera_sensor");
+		cargoCameraSensorTLV.put("state", "Excpetion Occured");
+		cargoCameraSensorTLV.put("prediction_value", "NA");
+		cargoCameraSensorTLV.put("confidence_rating", "NA");
+		String uuid = searchHit.getId();
+		IndexRequest indexRequest = new IndexRequest(destinationIndex);// destination
+		indexRequest.id(uuid);
+		indexRequest.source(map, XContentType.JSON);
+		indexRequests.add(indexRequest);
 	}
 
 }
