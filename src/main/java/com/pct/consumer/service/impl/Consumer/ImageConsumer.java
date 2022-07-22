@@ -102,7 +102,8 @@ public class ImageConsumer {
 	}
 
 	private ImageDataDTO getImageDataFromTensorFlow(String imageUrl) throws Exception {
-		String url = "http://127.0.0.1:5000/image/?file_path=" + imageUrl;
+		// String url = "http://127.0.0.1:5000/image/?file_path=" + imageUrl;
+		String url = "http://tensorflow.phillips-connect.net:5000/image/?file_path=" + imageUrl;
 		logger.info("started fetching image data from python model");
 		ImageDataDTO response = restTemplate.getForObject(url, ImageDataDTO.class);
 		logger.info("completed fetching image data from python model");
