@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <property name="LOG_PATH" value="logs"/>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>
+        %d{dd-MM-yyyy HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger.%M - %msg%n
+      </pattern>
+    </encoder>
+  </appender>
+
+ 
+  <appender name="SAVE-TO-FILE"
+            class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${LOG_PATH}/lookup.log</file>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <Pattern>
+        %d{dd-MM-yyyy HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M - %msg%n
+      </Pattern>
+    </encoder>
+
+    
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <!-- rollover daily & on size-->
+      <maxFileSize>5MB</maxFileSize>
+      <fileNamePattern>
+        ${LOG_PATH}/archived/lookup%d{dd-MM-yyyy}_%i.log
+      </fileNamePattern>
+      <maxHistory>10000000</maxHistory>
+      <totalSizeCap>100MB</totalSizeCap>
+    </rollingPolicy>
+ 
+
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <!-- rollover on size-->
+      <maxFileSize>10MB</maxFileSize>
+    </triggeringPolicy>
+
+  </appender>
+
+  <!--<root level="debug">-->
+  <root level="OFF">
+    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="SAVE-TO-FILE"/>
+  </root>
+ 
+</configuration>

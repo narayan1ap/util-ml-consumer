@@ -1,0 +1,28 @@
+
+    <div>
+        <h2 class="font">Click the provider to launch the trekking website</h2>
+    </div>
+
+    <div>
+        <h2 class="font">Not sure who the provider is? Check your trailer number here</h2>
+    </div>
+    <div>
+        <form (ngSubmit)="doSubmitForm()">
+   
+            <!-- <input type="text" placeholder="Trailer Number" name="trailer" > -->
+          
+            <br>
+            <mat-form-field appearance="outline">
+                <mat-label>Trailer Number</mat-label>
+                <input name="trailer" [(ngModel)]="data.trailer" matInput>
+                <mat-error *ngIf="provider != null">{{getProviderName()}}</mat-error>
+              </mat-form-field>
+              &nbsp;&nbsp;  <button class="button" mat-raised-button>Primary</button>
+              <br><mat-label *ngIf="provider != null">{{getProviderName()}} <a href={{provider.redirectUrl}} target="_blank">Visit Now</a> </mat-label>
+             
+        </form>
+        {{data | json }}
+    </div>
+  
+    <br><br><br>
+    <p class="font">©2020, All Right Reserved </p>

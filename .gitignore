@@ -1,0 +1,8 @@
+/target/
+.settings/
+/logs/
+/src/main/resources/static/
+.classpath
+.project
+asset-provider-lookup/package-lock.json
+/bin/

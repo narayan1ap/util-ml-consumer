@@ -1,0 +1,96 @@
+<div class="container-fluid appWrapper">
+    <div class="row headerRow">
+        <div class="col">
+            <div class="col-4 logoPCT">
+                <img src="../assets/images/pct-logo-2.png" />
+            </div>
+            <div class="col-8"></div>
+        </div>
+    </div>
+    <div class="row mt-5">
+        <div class="col providerTxt">
+            <span class="">
+                Click the provider to launch the tracking website.
+            </span>
+        </div>
+    </div>
+    <div class="row mt-5 justify-content-center">
+
+        <!-- <div class="col-8 text-center boxWrapper">
+              <div class="col-3 boxOfProvider mr-3">
+                  <img src="../assets/images/provider/img1.png" >
+              </div>
+              <div class="col-3 boxOfProvider mr-3">
+                  <img src="../assets/images/provider/img2.png" >
+              </div>
+              <div class="col-3 boxOfProvider mr-3">
+                  <img src="../assets/images/provider/img1.png" >
+              </div>
+          </div> -->
+
+        <div fxLayout="row wrap" fxLayoutGap="grid" fxLayoutAlign="center" class="col-8 text-center boxWrapper">
+            <div *ngFor="let provider  of assetLookup.providers" class="col-3 boxOfProvider mr-3">
+                <a href={{provider.redirectUrl}} target="_blank"> <img src="{{provider.logoUrl}}"> </a>
+            </div>
+            <!-- <div class="col-3 boxOfProvider mr-3">
+                  <img src="../assets/images/provider/img2.png" >
+              </div>
+              <div class="col-3 boxOfProvider mr-3">
+                  <img src="../assets/images/provider/img1.png" >
+              </div> -->
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col providerTxt">
+            <span class="">
+                Not sure who the provider is? Check your trailer number here
+            </span>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col providerTxt">
+            <span class="">
+                <form class="form-check-inline" (ngSubmit)="doSubmitForm()">
+                    <input type="text" name="trailer" class="form-check-input" placeholder="Trailer Number"
+                        [(ngModel)]="data.trailer" />
+                    <button class="btn-primary">check</button>
+                </form>
+
+            </span>
+        </div>
+    </div>
+
+
+
+
+    <div class="row mt-5">
+        <div *ngIf=" trailerFlag==1" class="col providerTxt2">
+            <span class="">
+                This Asset is tracked by <b>{{provider.providerName}}</b>. <a href={{provider.redirectUrl}}
+                    target="_blank">Visit Now.</a>
+            </span>
+        </div>
+        <div *ngIf="trailerFlag ==2" class="col providerErrorTxt">
+            <span class="">
+                The Asset ID you entered was not found. Please check and try again.
+            </span>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+
+    </div>
+
+
+</div>
+<div class="container-fluid">
+    <div class="row mt-5">
+        <div class="col copyrightTxt">
+            <span class="">
+                &copy;2021, All Rights Reserved
+            </span>
+        </div>
+    </div>
+</div>
