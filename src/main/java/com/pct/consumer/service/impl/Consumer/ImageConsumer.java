@@ -63,6 +63,7 @@ public class ImageConsumer {
 						response = getImageDataFromTensorFlow(imageUrl);
 					} catch (Exception e) {
 						createIndexRequestForException(searchHit);
+						logger.error("exception occured for id " + searchHit.getId() + " due to " + e.getMessage());
 					}
 					if (ObjectUtils.isNotEmpty(response)) {
 						createIndexRequest(response, searchHit, indexRequests);
@@ -129,13 +130,13 @@ public class ImageConsumer {
 			}
 			BulkResponse indexResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
 			if (indexResponse.hasFailures()) {
-				System.out.println("<---while updating failed for deivceId ");
+				logger.error("failed while updating ES");
 			} else {
-				System.out.println("total records update for deviceId in index  are " + indexResponse.getItems().length
+				logger.info("total records update for deviceId in index  are " + indexResponse.getItems().length
 						+ " and status is " + indexResponse.status());
 			}
 		} catch (Exception ex) {
-			System.out.println("<---Error for updateBulkRequest : for deviceID   due to " + ex + " --->");
+			logger.error("exception while updating ES  due to " + ex);
 		}
 	}
 
