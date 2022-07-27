@@ -85,8 +85,11 @@ public class ImageConsumer {
 		List<SearchHit> searchHits = null;
 		try {
 			SearchResponse searchResponse = null;
+			logger.info("started fetching request from ES for uuids");
 			searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+			logger.info("completed fetching request from ES for uuids");
 			SearchHit[] hits = searchResponse.getHits().getHits();
+			logger.info("size is : " + hits.length);
 			searchHits = Arrays.asList(hits);
 		} catch (IOException e) {
 			logger.error("exception occured due to " + e.getMessage());
