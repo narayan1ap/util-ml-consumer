@@ -89,6 +89,7 @@ public class ImageConsumer {
 			SearchHit[] hits = searchResponse.getHits().getHits();
 			searchHits = Arrays.asList(hits);
 		} catch (IOException e) {
+			logger.error("exception occured due to " + e.getMessage());
 			e.printStackTrace();
 		}
 		return searchHits;
@@ -99,10 +100,13 @@ public class ImageConsumer {
 		String jsonString = searchHit.getSourceAsString();
 		JSONObject json = new JSONObject(jsonString);
 		if (json.has("cargo_camera_sensor")) {
+			logger.info("fetched cargo_camera_sensor tlv");
 			if (json.getJSONObject("cargo_camera_sensor").has("uri")) {
+				logger.info("fetched uri from cargo_camera_sensor tlv");
 				imageUrl = json.getJSONObject("cargo_camera_sensor").getString("uri");
 			}
 		}
+		logger.info("not able to fetch cargo_camera_sensor tlv");
 		return imageUrl;
 	}
 
