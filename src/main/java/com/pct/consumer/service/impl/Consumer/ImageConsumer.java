@@ -49,7 +49,7 @@ public class ImageConsumer {
 
 	private List<IndexRequest> indexRequests = new ArrayList<>();
 
-	@KafkaListener(topics = "image-ml")
+	@KafkaListener(topics = "externalproces-kafka-process-queue")
 	public void getCargoCameraImageJson(@Payload List<String> uuids, @Headers MessageHeaders messageHeaders)
 			throws Exception {
 		if (ObjectUtils.isNotEmpty(uuids)) {
