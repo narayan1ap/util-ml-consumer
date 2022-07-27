@@ -45,11 +45,11 @@ public class ImageConsumer {
 	@Autowired
 	private RestHighLevelClient client;
 
-	private String destinationIndex = "image-index-delete-me-later";
+	private String destinationIndex = "device_report_data_staging";
 
 	private List<IndexRequest> indexRequests = new ArrayList<>();
 
-	@KafkaListener(topics = "externalproces-kafka-process-queue")
+	@KafkaListener(topics = "externalproces-kafka-process-queue", groupId = "reportconsumer", autoStartup = "true")
 	public void getCargoCameraImageJson(@Payload List<String> uuids, @Headers MessageHeaders messageHeaders)
 			throws Exception {
 		if (ObjectUtils.isNotEmpty(uuids)) {

@@ -38,9 +38,9 @@ public class BeanConfig {
 	@Bean
 	public RestHighLevelClient restClient() throws MalformedURLException {
 		URL elasticsearchUrl = new URL(
-				"https://search-dev-es-ms2-3icitsnrjeqn6vtpocxpnguxvm.us-east-1.es.amazonaws.com/");
+				"https://search-qa-ms2-es-idbp2srhezi72fnjvn7v6a4lnu.us-east-1.es.amazonaws.com/");
 		final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("admin", "3tF#$3~*TpXo"));
+		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("qa-ms2-es", "Admin@123#"));
 		RestClientBuilder builder = RestClient
 				.builder(new HttpHost(elasticsearchUrl.getHost(), elasticsearchUrl.getPort(), "https"))
 				.setRequestConfigCallback(
