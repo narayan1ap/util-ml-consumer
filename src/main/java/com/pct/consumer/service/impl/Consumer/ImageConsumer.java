@@ -54,6 +54,9 @@ public class ImageConsumer {
 			throws Exception {
 		if (ObjectUtils.isNotEmpty(uuids)) {
 			logger.info("uuids length : " + uuids.size());
+			for (String uuid : uuids) {
+				logger.info("uuid : " + uuid);
+			}
 			List<SearchHit> searchHits = createUuidSearchRequest(uuids);
 			for (SearchHit searchHit : searchHits) {
 				String imageUrl = getUriFromCargoCameraTLV(searchHit);
