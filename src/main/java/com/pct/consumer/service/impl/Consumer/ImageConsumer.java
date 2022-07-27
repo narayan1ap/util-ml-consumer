@@ -95,9 +95,14 @@ public class ImageConsumer {
 	}
 
 	private String getUriFromCargoCameraTLV(SearchHit searchHit) {
+		String imageUrl = null;
 		String jsonString = searchHit.getSourceAsString();
 		JSONObject json = new JSONObject(jsonString);
-		String imageUrl = json.getJSONObject("cargo_camera_sensor").getString("uri");
+		if (json.has("cargo_camera_sensor")) {
+			if (json.getJSONObject("cargo_camera_sensor").has("uri")) {
+				imageUrl = json.getJSONObject("cargo_camera_sensor").getString("uri");
+			}
+		}
 		return imageUrl;
 	}
 
