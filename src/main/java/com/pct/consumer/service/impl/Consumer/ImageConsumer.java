@@ -89,6 +89,8 @@ public class ImageConsumer {
 		try {
 			SearchResponse searchResponse = null;
 			logger.info("started fetching request from ES for uuids");
+			logger.info("index========>" + destinationIndex);
+			logger.info("query========>" + searchRequest.source().toString());
 			searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
 			logger.info("completed fetching request from ES for uuids");
 			SearchHit[] hits = searchResponse.getHits().getHits();
