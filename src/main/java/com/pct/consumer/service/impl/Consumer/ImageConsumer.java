@@ -3,11 +3,8 @@ package com.pct.consumer.service.impl.Consumer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -171,6 +168,7 @@ public class ImageConsumer {
 	}
 
 	private void createIndexRequest(ImageDataDTO response, SearchHit searchHit, List<IndexRequest> indexRequests) {
+		logger.info("started adding index request for uuid " + searchHit.getId());
 		Map map = searchHit.getSourceAsMap();
 		Map cargoCameraSensorTLV = (Map) map.get("cargo_camera_sensor");
 		cargoCameraSensorTLV.put("state", response.getState());
@@ -181,9 +179,11 @@ public class ImageConsumer {
 		indexRequest.id(uuid);
 		indexRequest.source(map, XContentType.JSON);
 		indexRequests.add(indexRequest);
+		logger.info("completed adding index request for uuid " + searchHit.getId());
 	}
 
 	private void updateBulkIndexRequests(List<IndexRequest> indexRequests) {
+		logger.info("started updating bulk index request for " + indexRequests.size() + " docs");
 		try {
 			BulkRequest bulkRequest = new BulkRequest();
 			for (IndexRequest indexRequest : indexRequests) {
@@ -191,10 +191,12 @@ public class ImageConsumer {
 			}
 			BulkResponse indexResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
 			if (indexResponse.hasFailures()) {
-				logger.error("failed while updating ES");
+				logger.error("failed while bulk updating ES");
+				logger.info("failed while bulk updating ES");
 			} else {
 				logger.info("total records update for deviceId in index  are " + indexResponse.getItems().length
 						+ " and status is " + indexResponse.status());
+				logger.info("completed updating bulk index request for " + indexRequests.size() + " docs");
 			}
 		} catch (Exception ex) {
 			logger.error("exception while updating ES  due to " + ex);
@@ -203,6 +205,7 @@ public class ImageConsumer {
 	}
 
 	private void createIndexRequestForException(SearchHit searchHit) {
+		logger.info("started adding index request exception for uuid " + searchHit.getId());
 		Map map = searchHit.getSourceAsMap();
 		Map cargoCameraSensorTLV = (Map) map.get("cargo_camera_sensor");
 		cargoCameraSensorTLV.put("state", "Excpetion Occured");
@@ -213,6 +216,7 @@ public class ImageConsumer {
 		indexRequest.id(uuid);
 		indexRequest.source(map, XContentType.JSON);
 		indexRequests.add(indexRequest);
+		logger.info("completed adding index request exception for uuid " + searchHit.getId());
 	}
 
 }
