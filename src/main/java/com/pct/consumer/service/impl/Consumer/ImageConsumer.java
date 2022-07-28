@@ -3,8 +3,11 @@ package com.pct.consumer.service.impl.Consumer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -29,6 +32,8 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pct.utils.dto.ImageDataDTO;
 
 import lombok.extern.slf4j.Slf4j;
@@ -49,33 +54,67 @@ public class ImageConsumer {
 
 	private List<IndexRequest> indexRequests = new ArrayList<>();
 
+//	@KafkaListener(topics = "externalproces-kafka-process-queue", groupId = "reportconsumer", autoStartup = "true")
+//	public void getCargoCameraImageJson(@Payload List<String> uuids, @Headers MessageHeaders messageHeaders)
+//			throws Exception {
+//		if (ObjectUtils.isNotEmpty(uuids.get(0))) {
+//			logger.info("uuids length : " + uuids.size());
+//			logger.info("uuid " + uuids);
+//			for (String uuid : uuids) {
+//				logger.info("uuid : " + uuid);
+//			}
+//			List<SearchHit> searchHits = createUuidSearchRequest(uuids);
+//			for (SearchHit searchHit : searchHits) {
+//				String imageUrl = getUriFromCargoCameraTLV(searchHit);
+//				if (ObjectUtils.isNotEmpty(imageUrl)) {
+//					ImageDataDTO response = null;
+//					try {
+//						response = getImageDataFromTensorFlow(imageUrl);
+//					} catch (Exception e) {
+//						createIndexRequestForException(searchHit);
+//						logger.error("exception occured for id " + searchHit.getId() + " due to " + e.getMessage());
+//					}
+//					if (ObjectUtils.isNotEmpty(response)) {
+//						createIndexRequest(response, searchHit, indexRequests);
+//					}
+//				}
+//			}
+//			if (ObjectUtils.isNotEmpty(indexRequests)) {
+//				updateBulkIndexRequests(indexRequests);
+//			}
+//		}
+//	}
+
 	@KafkaListener(topics = "externalproces-kafka-process-queue", groupId = "reportconsumer", autoStartup = "true")
-	public void getCargoCameraImageJson(@Payload List<String> uuids, @Headers MessageHeaders messageHeaders)
-			throws Exception {
-		if (ObjectUtils.isNotEmpty(uuids)) {
-			logger.info("uuids length : " + uuids.size());
-			for (String uuid : uuids) {
-				logger.info("uuid : " + uuid);
-			}
-			List<SearchHit> searchHits = createUuidSearchRequest(uuids);
-			for (SearchHit searchHit : searchHits) {
-				String imageUrl = getUriFromCargoCameraTLV(searchHit);
-				if (ObjectUtils.isNotEmpty(imageUrl)) {
-					ImageDataDTO response = null;
-					try {
-						response = getImageDataFromTensorFlow(imageUrl);
-					} catch (Exception e) {
-						createIndexRequestForException(searchHit);
-						logger.error("exception occured for id " + searchHit.getId() + " due to " + e.getMessage());
-					}
-					if (ObjectUtils.isNotEmpty(response)) {
-						createIndexRequest(response, searchHit, indexRequests);
+	public void getCargoCameraImageJson(@Payload String uuid, @Headers MessageHeaders messageHeaders) throws Exception {
+		if (ObjectUtils.isNotEmpty(uuid)) {
+			logger.info("uuids are : " + uuid);
+			ObjectMapper mapper = new ObjectMapper();
+			List<String> uuids = mapper.readValue(uuid, new TypeReference<List<String>>() {
+			});
+			logger.info("parsed uuids from kafka : " + uuids + " and size are : " + uuids.size());
+			if (ObjectUtils.isNotEmpty(uuids)) {
+				List<SearchHit> searchHits = createUuidSearchRequest(uuids);
+				for (SearchHit searchHit : searchHits) {
+					String imageUrl = getUriFromCargoCameraTLV(searchHit);
+					if (ObjectUtils.isNotEmpty(imageUrl)) {
+						ImageDataDTO response = null;
+						try {
+							response = getImageDataFromTensorFlow(imageUrl);
+						} catch (Exception e) {
+							createIndexRequestForException(searchHit);
+							logger.error("exception occured for id " + searchHit.getId() + " due to " + e.getMessage());
+						}
+						if (ObjectUtils.isNotEmpty(response)) {
+							createIndexRequest(response, searchHit, indexRequests);
+						}
 					}
 				}
+				if (ObjectUtils.isNotEmpty(indexRequests)) {
+					updateBulkIndexRequests(indexRequests);
+				}
 			}
-			if (ObjectUtils.isNotEmpty(indexRequests)) {
-				updateBulkIndexRequests(indexRequests);
-			}
+
 		}
 	}
 
@@ -110,8 +149,12 @@ public class ImageConsumer {
 		if (json.has("cargo_camera_sensor")) {
 			logger.info("fetched cargo_camera_sensor tlv");
 			if (json.getJSONObject("cargo_camera_sensor").has("uri")) {
-				logger.info("fetched uri from cargo_camera_sensor tlv");
 				imageUrl = json.getJSONObject("cargo_camera_sensor").getString("uri");
+				logger.info("fetched uri from cargo_camera_sensor tlv");
+				return imageUrl;
+			} else {
+				logger.info("not able to fetch uri from cargo_camera_sensor tlv");
+				return imageUrl;
 			}
 		}
 		logger.info("not able to fetch cargo_camera_sensor tlv");
@@ -155,6 +198,7 @@ public class ImageConsumer {
 			}
 		} catch (Exception ex) {
 			logger.error("exception while updating ES  due to " + ex);
+			ex.printStackTrace();
 		}
 	}
 
