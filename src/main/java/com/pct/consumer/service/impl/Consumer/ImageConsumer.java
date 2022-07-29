@@ -48,7 +48,7 @@ public class ImageConsumer {
 	@Autowired
 	private RestHighLevelClient client;
 
-	private String destinationIndex = "device_report_data_staging";
+	private String destinationIndex = "device_report_staging_1";
 
 	private List<IndexRequest> indexRequests = new ArrayList<>();
 
@@ -112,7 +112,6 @@ public class ImageConsumer {
 					updateBulkIndexRequests(indexRequests);
 				}
 			}
-
 		}
 	}
 
