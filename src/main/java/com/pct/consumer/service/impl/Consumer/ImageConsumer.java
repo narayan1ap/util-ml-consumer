@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -161,7 +162,7 @@ public class ImageConsumer {
 	private ImageDataDTO getImageDataFromTensorFlow(String imageUrl) throws Exception {
 		// String url = "http://127.0.0.1:5000/image/?file_path=" + imageUrl;
 		String url = "http://tensorflow.phillips-connect.net:5000/image/?file_path=" + imageUrl;
-		logger.info("started fetching image data from python model");
+		logger.info("started fetching image data from python model for imageUrl " + imageUrl);
 		ImageDataDTO response = restTemplate.getForObject(url, ImageDataDTO.class);
 		logger.info("completed fetching image data from python model");
 		return response;
@@ -187,15 +188,21 @@ public class ImageConsumer {
 		try {
 			BulkRequest bulkRequest = new BulkRequest();
 			for (IndexRequest indexRequest : indexRequests) {
+				logger.info("uuids which will be updated on ES as part of bulk request " + indexRequest.id() + "\n");
 				bulkRequest.add(indexRequest);
 			}
-			BulkResponse indexResponse = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-			if (indexResponse.hasFailures()) {
+			BulkResponse indexResponses = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+			if (indexResponses.hasFailures()) {
+				for (BulkItemResponse indexResponse : indexResponses) {
+					logger.info("uuids which got failed for " + indexResponse.getId() + "\n");
+				}
 				logger.error("failed while bulk updating ES");
-				logger.info("failed while bulk updating ES");
 			} else {
-				logger.info("total records update for deviceId in index  are " + indexResponse.getItems().length
-						+ " and status is " + indexResponse.status());
+				for (BulkItemResponse indexResponse : indexResponses) {
+					logger.info("uuids which got successfully updated in ES " + indexResponse.getId() + "\n");
+				}
+				logger.info("total records update for deviceId in index  are " + indexResponses.getItems().length
+						+ " and status is " + indexResponses.status());
 				logger.info("completed updating bulk index request for " + indexRequests.size() + " docs");
 			}
 		} catch (Exception ex) {
