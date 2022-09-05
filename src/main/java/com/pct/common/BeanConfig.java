@@ -14,6 +14,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -24,6 +25,15 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class BeanConfig {
 
+	@Value("${elastic.url}")
+	private String elasticUrl;
+	
+	@Value("${elastic.username}")
+	private String elasticUsername;
+	
+	@Value("${elastic.password}")
+	private String elasticPassword;
+	
 	@Bean
 	RestTemplate restTemplate() {
 		RestTemplate restTemplate = new RestTemplate();
@@ -37,10 +47,9 @@ public class BeanConfig {
 
 	@Bean
 	public RestHighLevelClient restClient() throws MalformedURLException {
-		URL elasticsearchUrl = new URL(
-				"https://search-qa-ms2-es-idbp2srhezi72fnjvn7v6a4lnu.us-east-1.es.amazonaws.com/");
+		URL elasticsearchUrl = new URL(elasticUrl);
 		final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials("qa-ms2-es", "Admin@123#"));
+		credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(elasticUsername, elasticPassword));
 		RestClientBuilder builder = RestClient
 				.builder(new HttpHost(elasticsearchUrl.getHost(), elasticsearchUrl.getPort(), "https"))
 				.setRequestConfigCallback(

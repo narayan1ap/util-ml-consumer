@@ -23,6 +23,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -48,9 +49,14 @@ public class ImageConsumer {
 	@Autowired
 	private RestHighLevelClient client;
 
-	private String destinationIndex = "device_report_staging_1";
+	@Value("${elastic.destinationindex}")
+	private String destinationIndex;
 
 	private List<IndexRequest> indexRequests = new ArrayList<>();
+	
+	@Value("${tensorflow.url}")
+	private String tensorFlowUrl;
+	
 
 //	@KafkaListener(topics = "externalproces-kafka-process-queue", groupId = "reportconsumer", autoStartup = "true")
 //	public void getCargoCameraImageJson(@Payload List<String> uuids, @Headers MessageHeaders messageHeaders)
@@ -83,7 +89,7 @@ public class ImageConsumer {
 //		}
 //	}
 
-	@KafkaListener(topics = "externalproces-kafka-process-queue", groupId = "reportconsumer", autoStartup = "true")
+	@KafkaListener(topics = "${externalProcess.kafka.process.queue}", groupId = "reportconsumer", autoStartup = "true")
 	public void getCargoCameraImageJson(@Payload String uuid, @Headers MessageHeaders messageHeaders) throws Exception {
 		if (ObjectUtils.isNotEmpty(uuid)) {
 			logger.info("uuids are : " + uuid);
@@ -160,7 +166,7 @@ public class ImageConsumer {
 
 	private ImageDataDTO getImageDataFromTensorFlow(String imageUrl) throws Exception {
 		// String url = "http://127.0.0.1:5000/image/?file_path=" + imageUrl;
-		String url = "http://tensorflow.phillips-connect.net:5000/image/?file_path=" + imageUrl;
+		String url = tensorFlowUrl+"/image/?file_path=" + imageUrl;
 		logger.info("started fetching image data from python model for imageUrl " + imageUrl);
 		ImageDataDTO response = restTemplate.getForObject(url, ImageDataDTO.class);
 		logger.info("completed fetching image data from python model");
